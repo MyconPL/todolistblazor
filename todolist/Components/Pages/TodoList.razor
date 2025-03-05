@@ -10,7 +10,13 @@
 <ul>
     @foreach (var todo in todos)
     {
-        <li>@todo.Title</li>
+        <li>
+            @todo.Title
+            <button @onclick="() => ToggleCompletion(todo)">
+                @(todo.IsCompleted ? "Mark as Incomplete" : "Mark as Done")
+            </button>
+            <button @onclick="() => DeleteTodoItem(todo)">Delete</button>
+        </li>
     }
 </ul>
 
@@ -18,12 +24,14 @@
     string newTodoTitle = "";
     List<TodoItem> todos = new List<TodoItem>();
 
+    // Załadowanie zadań z bazy danych po załadowaniu komponentu
     protected override async Task OnInitializedAsync()
     {
-        // Wczytaj istniejące elementy z bazy
+        // Wczytaj istniejące elementy z bazy danych
         todos = await DbContext.TodoItems.ToListAsync();
     }
 
+    // Metoda dodawania nowego zadania
     async Task AddTodoItem()
     {
         if (!string.IsNullOrEmpty(newTodoTitle))
@@ -36,5 +44,26 @@
             newTodoTitle = "";
             todos = await DbContext.TodoItems.ToListAsync();
         }
+    }
+
+    // Metoda do zmiany statusu zadania (zrobione/niezrobione)
+    async Task ToggleCompletion(TodoItem todo)
+    {
+        todo.IsCompleted = !todo.IsCompleted;
+        DbContext.TodoItems.Update(todo);
+        await DbContext.SaveChangesAsync();
+
+        // Zaktualizuj listę po zmianie statusu
+        todos = await DbContext.TodoItems.ToListAsync();
+    }
+
+    // Metoda do usuwania zadania
+    async Task DeleteTodoItem(TodoItem todo)
+    {
+        DbContext.TodoItems.Remove(todo);
+        await DbContext.SaveChangesAsync();
+
+        // Zaktualizuj listę po usunięciu zadania
+        todos = await DbContext.TodoItems.ToListAsync();
     }
 }
