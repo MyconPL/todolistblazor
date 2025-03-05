@@ -1,0 +1,40 @@
+﻿@page "/todolist"
+@using global::todolist.Components.Data
+@using Microsoft.EntityFrameworkCore
+@inject AppDbContext DbContext
+<h3>Todo List</h3>
+
+<input @bind="newTodoTitle" placeholder="Enter new todo" />
+<button @onclick="AddTodoItem">Add Todo</button>
+
+<ul>
+    @foreach (var todo in todos)
+    {
+        <li>@todo.Title</li>
+    }
+</ul>
+
+@code {
+    string newTodoTitle = "";
+    List<TodoItem> todos = new List<TodoItem>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Wczytaj istniejące elementy z bazy
+        todos = await DbContext.TodoItems.ToListAsync();
+    }
+
+    async Task AddTodoItem()
+    {
+        if (!string.IsNullOrEmpty(newTodoTitle))
+        {
+            var newTodo = new TodoItem { Title = newTodoTitle, IsCompleted = false };
+            DbContext.TodoItems.Add(newTodo);
+            await DbContext.SaveChangesAsync();
+
+            // Opróżnij pole tekstowe i zaktualizuj listę
+            newTodoTitle = "";
+            todos = await DbContext.TodoItems.ToListAsync();
+        }
+    }
+}
