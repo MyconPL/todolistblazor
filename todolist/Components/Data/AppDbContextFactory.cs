@@ -9,7 +9,7 @@ namespace todolist.Components.Data
         {
             var optionsBuilder = new DbContextOptionsBuilder<AppDbContext>();
             optionsBuilder.UseMySql(
-                "server=localhost;database=todolist;user=root;password=root",
+                "server=localhost;database=todolist;user=root;password=password",
                 new MySqlServerVersion(new Version(8, 0, 23))
             );
 

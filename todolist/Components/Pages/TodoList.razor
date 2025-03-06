@@ -1,7 +1,7 @@
 ﻿@page "/todolist"
-@using global::todolist.Components.Data
 @using Microsoft.EntityFrameworkCore
 @inject AppDbContext DbContext
+
 <h3>Todo List</h3>
 
 <input @bind="newTodoTitle" placeholder="Enter new todo" />
@@ -10,60 +10,35 @@
 <ul>
     @foreach (var todo in todos)
     {
-        <li>
-            @todo.Title
-            <button @onclick="() => ToggleCompletion(todo)">
-                @(todo.IsCompleted ? "Mark as Incomplete" : "Mark as Done")
-            </button>
-            <button @onclick="() => DeleteTodoItem(todo)">Delete</button>
-        </li>
+        <li>@todo.Title</li>
     }
 </ul>
 
 @code {
-    string newTodoTitle = "";
-    List<TodoItem> todos = new List<TodoItem>();
+    private string newTodoTitle = "";
+    private List<TodoItem> todos = new();
 
-    // Załadowanie zadań z bazy danych po załadowaniu komponentu
     protected override async Task OnInitializedAsync()
     {
-        // Wczytaj istniejące elementy z bazy danych
-        todos = await DbContext.TodoItems.ToListAsync();
+        await LoadTodos();
     }
 
-    // Metoda dodawania nowego zadania
-    async Task AddTodoItem()
+    private async Task LoadTodos()
     {
-        if (!string.IsNullOrEmpty(newTodoTitle))
+        todos = await DbContext.TodoItems.AsNoTracking().ToListAsync();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task AddTodoItem()
+    {
+        if (!string.IsNullOrWhiteSpace(newTodoTitle))
         {
             var newTodo = new TodoItem { Title = newTodoTitle, IsCompleted = false };
             DbContext.TodoItems.Add(newTodo);
             await DbContext.SaveChangesAsync();
 
-            // Opróżnij pole tekstowe i zaktualizuj listę
             newTodoTitle = "";
-            todos = await DbContext.TodoItems.ToListAsync();
+            await LoadTodos();
         }
-    }
-
-    // Metoda do zmiany statusu zadania (zrobione/niezrobione)
-    async Task ToggleCompletion(TodoItem todo)
-    {
-        todo.IsCompleted = !todo.IsCompleted;
-        DbContext.TodoItems.Update(todo);
-        await DbContext.SaveChangesAsync();
-
-        // Zaktualizuj listę po zmianie statusu
-        todos = await DbContext.TodoItems.ToListAsync();
-    }
-
-    // Metoda do usuwania zadania
-    async Task DeleteTodoItem(TodoItem todo)
-    {
-        DbContext.TodoItems.Remove(todo);
-        await DbContext.SaveChangesAsync();
-
-        // Zaktualizuj listę po usunięciu zadania
-        todos = await DbContext.TodoItems.ToListAsync();
     }
 }
