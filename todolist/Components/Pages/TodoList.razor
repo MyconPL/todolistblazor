@@ -1,6 +1,7 @@
 ﻿@page "/todolist"
 @using Microsoft.EntityFrameworkCore
 @inject AppDbContext DbContext
+@rendermode InteractiveServer
 
 <h3>Todo List</h3>
 
@@ -10,35 +11,108 @@
 <ul>
     @foreach (var todo in todos)
     {
-        <li>@todo.Title</li>
+        <li>
+            @todo.Title - <strong>@(todo.IsCompleted ? "Completed" : "Not Completed")</strong>
+            <button @onclick="() => ToggleCompletion(todo)">Toggle Status</button>
+            <button @onclick="() => DeleteTodoItem(todo.Id)">Delete</button>
+        </li>
+    }
+</ul>
+
+<h4>Messages:</h4>
+<ul>
+    @foreach (var message in messages)
+    {
+        <li>@message</li>
     }
 </ul>
 
 @code {
-    private string newTodoTitle = "";
-    private List<TodoItem> todos = new();
+    private string newTodoTitle;
+    private List<TodoItem> todos = new List<TodoItem>();
+    private List<string> messages = new List<string>();  // Lista do wyświetlania komunikatów
 
     protected override async Task OnInitializedAsync()
     {
+        messages.Add("Loading todos...");
         await LoadTodos();
     }
 
     private async Task LoadTodos()
     {
-        todos = await DbContext.TodoItems.AsNoTracking().ToListAsync();
-        await InvokeAsync(StateHasChanged);
+        try
+        {
+            todos = await DbContext.TodoItems.ToListAsync();
+            messages.Add($"Loaded {todos.Count} todos from the database.");
+        }
+        catch (Exception ex)
+        {
+            messages.Add($"Error loading todos: {ex.Message}");
+        }
     }
 
     private async Task AddTodoItem()
     {
+        messages.Add("AddTodoItem method called");
+
         if (!string.IsNullOrWhiteSpace(newTodoTitle))
         {
             var newTodo = new TodoItem { Title = newTodoTitle, IsCompleted = false };
-            DbContext.TodoItems.Add(newTodo);
-            await DbContext.SaveChangesAsync();
-
+            messages.Add($"Adding Todo: {newTodo.Title}");
+    
+            try
+            {
+                DbContext.TodoItems.Add(newTodo);
+                messages.Add("Todo item added to DbContext.");
+                await DbContext.SaveChangesAsync();
+                messages.Add("Todo added successfully!");
+            }
+            catch (Exception ex)
+            {
+                messages.Add($"Error saving Todo: {ex.Message}");
+            }
+    
             newTodoTitle = "";
             await LoadTodos();
+        }
+        else
+        {
+            messages.Add("Todo title cannot be empty.");
+        }
+    }
+
+    private async Task ToggleCompletion(TodoItem todo)
+    {
+        try
+        {
+            todo.IsCompleted = !todo.IsCompleted;
+            DbContext.TodoItems.Update(todo);
+            await DbContext.SaveChangesAsync();
+            messages.Add($"Todo status updated: {todo.Title} - {(todo.IsCompleted ? "Completed" : "Not Completed")}");
+            await LoadTodos();
+        }
+        catch (Exception ex)
+        {
+            messages.Add($"Error updating Todo status: {ex.Message}");
+        }
+    }
+
+    private async Task DeleteTodoItem(int id)
+    {
+        try
+        {
+            var todoToDelete = await DbContext.TodoItems.FindAsync(id);
+            if (todoToDelete != null)
+            {
+                DbContext.TodoItems.Remove(todoToDelete);
+                await DbContext.SaveChangesAsync();
+                messages.Add($"Todo deleted: {todoToDelete.Title}");
+                await LoadTodos();
+            }
+        }
+        catch (Exception ex)
+        {
+            messages.Add($"Error deleting Todo: {ex.Message}");
         }
     }
 }
