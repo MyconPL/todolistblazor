@@ -53,7 +53,6 @@
 
     private async Task AddTodoItem()
     {
-        messages.Add("AddTodoItem method called");
 
         if (!string.IsNullOrWhiteSpace(newTodoTitle))
         {
@@ -89,7 +88,7 @@
             DbContext.TodoItems.Update(todo);
             await DbContext.SaveChangesAsync();
             messages.Add($"Todo status updated: {todo.Title} - {(todo.IsCompleted ? "Completed" : "Not Completed")}");
-            await LoadTodos();
+
         }
         catch (Exception ex)
         {
